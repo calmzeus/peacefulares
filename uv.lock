@@ -1,0 +1,7 @@
+version = 1
+requires-python = ">=3.12"
+
+[[package]]
+name = "peacefulares"
+version = "0.1.0a0"
+source = { virtual = "." }

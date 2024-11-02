@@ -1,0 +1,7 @@
+[project]
+name = "peacefulares"
+version = "0.1.0-alpha"
+description = "LLM-powered configuration assistant"
+authors = [{ name = "lo-b", email = "bram_lo@outlook.com" }]
+requires-python = ">=3.12"
+dependencies = []
