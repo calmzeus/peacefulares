@@ -4,4 +4,36 @@ version = "0.1.0-alpha"
 description = "LLM-powered configuration assistant"
 authors = [{ name = "lo-b", email = "bram_lo@outlook.com" }]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "langchain-community>=0.3.5",
+    "langchain>=0.3.7",
+    "tree-sitter>=0.21,<0.22",
+    "tree-sitter-languages>=1.10.2",
+]
+
+[tool.basedpyright]
+include = ["**/*.py"]
+typeCheckingMode = "off"    # type checking done by mypy
+reportUnusedImport = "none" # ruff already lints for this rule
+
+# sane ruff defaults
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # flake8-quotes
+    "Q",
+]
+
+[tool.mypy]
+namespace_packages = true
