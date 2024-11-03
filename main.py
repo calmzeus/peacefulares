@@ -1,12 +1,25 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from uuid import uuid4
 
+from dotenv import load_dotenv
 from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
+from langchain_core.embeddings import Embeddings
+from langchain_core.vectorstores.base import VectorStore
+from langchain_qdrant import QdrantVectorStore
 from langchain_text_splitters.base import Language
+from langchain_voyageai import VoyageAIEmbeddings
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import Distance, VectorParams
 
+# see https://github.com/lo-b/heavenlyhades.git
 PROJECT_PATH = "/home/bram/projects/heavenlyhades/java/simple-api/"
+QDRANT_COLLECTION_NAME = "simple-java-api"
+# see https://blog.voyageai.com/2024/01/23/voyage-code-2-elevate-your-code-retrieval/
+VOYAGE_MODEL_NAME = "voyage-code-2"
+EMBEDDING_BATCH_SIZE = 1
 
 
 class LoaderContext:
@@ -106,7 +119,30 @@ def create_loader(
     )
 
 
+def create_qdrant_store(
+    collection_name: str, client: QdrantClient, embeddings: Embeddings
+) -> VectorStore:
+    """
+    Create a Qdrant vector store using the client and embeddings. The
+    collection is created if it does not exist yet.
+    """
+
+    sample_text = "69-420"  # sample text to determine embedding size
+    embedding_size = len(embeddings.embed_query(sample_text))
+
+    if not client.collection_exists(collection_name):
+        client.create_collection(
+            collection_name=collection_name,
+            vectors_config=VectorParams(size=embedding_size, distance=Distance.COSINE),
+        )
+
+    return QdrantVectorStore(
+        client=client, collection_name=collection_name, embedding=embeddings
+    )
+
+
 def main():
+    assert load_dotenv(), ".env file exists and contains at least one variable"
     print("Hello from peacefulares!")
     print("Client: set strategy")
     loader_context = LoaderContext(JavaLoadStrategy())
@@ -116,6 +152,23 @@ def main():
     print("Client: loaded", len(docs), "documents with the following paths:")
     for doc in docs:
         print(" ", doc.metadata["source"])
+
+    embeddings = VoyageAIEmbeddings(
+        model=VOYAGE_MODEL_NAME, batch_size=EMBEDDING_BATCH_SIZE
+    )
+
+    # keep data in-memeroy; gets lost when the client is destroyed
+    client = QdrantClient(":memory:")
+    vector_store = create_qdrant_store(QDRANT_COLLECTION_NAME, client, embeddings)
+
+    if (
+        client.collection_exists(QDRANT_COLLECTION_NAME)
+        and client.get_collection(QDRANT_COLLECTION_NAME).points_count == 0
+    ):
+        print("Client: adding all documents to collection ...")
+        uuids = [str(uuid4()) for _ in range(len(docs))]
+        v_uuids = vector_store.add_documents(documents=docs, ids=uuids)
+        print(v_uuids)
 
 
 if __name__ == "__main__":
