@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
+from langchain_text_splitters.base import Language
 
 PROJECT_PATH = "/home/bram/projects/heavenlyhades/java/simple-api/"
 
@@ -89,7 +90,9 @@ class JavaLoadStrategy(LoadStrategy):
         return [".java", ".properties"]
 
 
-def create_loader(path: str, loader_context: LoaderContext) -> GenericLoader:
+def create_loader(
+    language: Language, loader_context: LoaderContext, path: str
+) -> GenericLoader:
     """Create new loader using a specific context."""
 
     return GenericLoader.from_filesystem(
@@ -98,8 +101,8 @@ def create_loader(path: str, loader_context: LoaderContext) -> GenericLoader:
         suffixes=loader_context.filetypes_of_intereset(),
         # WARNING: Loading docs using the 'parser' below gives deprecation
         # warning. This is because treesitter package had to be downgraded
-        # to a version in [0.21, 0.21) for loading to work.
-        parser=LanguageParser(language="java"),
+        # to a version in [0.21, 0.22) for loading to work.
+        parser=LanguageParser(language),  # type: ignore[arg-type]
     )
 
 
@@ -108,7 +111,7 @@ def main():
     print("Client: set strategy")
     loader_context = LoaderContext(JavaLoadStrategy())
     print("Client: create loader")
-    loader = create_loader(PROJECT_PATH, loader_context)
+    loader = create_loader(Language.JAVA, loader_context, PROJECT_PATH)
     docs = loader.load()
     print("Client: loaded", len(docs), "documents with the following paths:")
     for doc in docs:
